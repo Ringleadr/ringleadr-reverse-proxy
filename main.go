@@ -51,6 +51,7 @@ func getListenAddress() string {
 
 // Serve a reverse proxy for a given url
 func serveReverseProxy(target string, res http.ResponseWriter, req *http.Request) {
+	log.Println("Trying to redirect to", target)
 	// parse the targetURL
 	targetURL, _ := url.Parse(target)
 
