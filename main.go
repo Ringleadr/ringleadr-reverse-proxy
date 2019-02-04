@@ -8,11 +8,13 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -67,12 +69,47 @@ func serveReverseProxy(target string, res http.ResponseWriter, req *http.Request
 
 // Given a request send it to the appropriate url
 func handleRequestAndRedirect(res http.ResponseWriter, req *http.Request) {
-	log.Println(req.URL.String())
 	spew.Dump(req.Header)
+	split := strings.Split(req.URL.String(), "/")
+	if len(split) != 3 {
+		_, _ = fmt.Fprintln(res, "Malformed URL")
+		return
+	}
+	appName := split[1]
+	compName := split[2]
 
-	_, _ = fmt.Fprintln(res, "foo")
+	reqURL := req.Header.Get("X-agogos-query")
+	if reqURL == "" {
+		_, _ = fmt.Fprintln(res, "Missing agogos-url header")
+		return
+	}
 
-	//serveReverseProxy(url, res, req)
+	appCopy := applicationList.getApps()
+	var ipAddr []string
+	for _, app := range appCopy {
+		if app.Node != hostCheck {
+			continue
+		}
+		if app.Name != appName {
+			continue
+		}
+		for _, comp := range app.Components {
+			if comp.Name == compName {
+				ipAddr = append(ipAddr, comp.NetworkInfo["bridge"]...)
+			}
+		}
+	}
+
+
+	if len(ipAddr) == 0 {
+		_, _ = fmt.Fprintln(res, "not on this node")
+		return
+	}
+
+	randomIP := ipAddr[rand.Intn(len(ipAddr))]
+	formatURL := strings.Replace(reqURL, compName, randomIP, 1)
+
+	serveReverseProxy(formatURL, res, req)
 }
 
 func main() {
@@ -86,6 +123,7 @@ func main() {
 	go appWatcher()
 
 	// start server
+	log.Println("Serving on", getListenAddress())
 	http.HandleFunc("/", handleRequestAndRedirect)
 	if err := http.ListenAndServe(getListenAddress(), nil); err != nil {
 		panic(err)
