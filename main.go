@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/GodlikePenguin/agogos-datatypes"
-	"github.com/davecgh/go-spew/spew"
 	"io/ioutil"
 	"log"
 	"math/rand"
@@ -55,8 +54,15 @@ func serveReverseProxy(target string, res http.ResponseWriter, req *http.Request
 	// parse the targetURL
 	targetURL, _ := url.Parse(target)
 
-	// create the reverse proxy
-	proxy := httputil.NewSingleHostReverseProxy(targetURL)
+	director := func(newReq *http.Request) {
+		newReq.URL = targetURL
+		newReq.URL.RawQuery = targetURL.RawQuery
+		if _, ok := newReq.Header["User-Agent"]; !ok {
+			// explicitly disable User-Agent so it's not set to default value
+			newReq.Header.Set("User-Agent", "")
+		}
+	}
+	proxy := &httputil.ReverseProxy{Director: director}
 
 	// Update the headers to allow for SSL redirection
 	req.URL.Host = targetURL.Host
@@ -70,7 +76,6 @@ func serveReverseProxy(target string, res http.ResponseWriter, req *http.Request
 
 // Given a request send it to the appropriate url
 func handleRequestAndRedirect(res http.ResponseWriter, req *http.Request) {
-	spew.Dump(req.Header)
 	split := strings.Split(req.URL.String(), "/")
 	if len(split) != 3 {
 		_, _ = fmt.Fprintln(res, "Malformed URL")
