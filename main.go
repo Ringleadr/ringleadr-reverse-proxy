@@ -155,7 +155,15 @@ func appWatcher() {
 }
 
 func getRequest(address string) ([]byte, error) {
-	resp, err := http.Get(address)
+	req, err := http.NewRequest(http.MethodGet, address, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("X-agogos-disable-log", "true")
+
+	client := http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
