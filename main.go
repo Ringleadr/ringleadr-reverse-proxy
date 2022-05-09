@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/GodlikePenguin/agogos-datatypes"
+	datatypes "github.com/Ringleadr/ringleadr-datatypes"
 	"io/ioutil"
 	"log"
 	"math/rand"
@@ -23,17 +23,17 @@ var applicationList apps
 
 type apps struct {
 	sync.Mutex
-	applications []Datatypes.Application
+	applications []datatypes.Application
 }
 
-func (a *apps) getApps() []Datatypes.Application {
+func (a *apps) getApps() []datatypes.Application {
 	a.Lock()
 	toReturn := a.applications
 	a.Unlock()
 	return toReturn
 }
 
-func (a *apps) setApps(app []Datatypes.Application) {
+func (a *apps) setApps(app []datatypes.Application) {
 	a.Lock()
 	a.applications = app
 	a.Unlock()
@@ -106,7 +106,6 @@ func handleRequestAndRedirect(res http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-
 	if len(ipAddr) == 0 {
 		_, _ = fmt.Fprintln(res, "not on this node")
 		return
@@ -145,7 +144,7 @@ func appWatcher() {
 			continue
 		}
 
-		var a []Datatypes.Application
+		var a []datatypes.Application
 		if err = json.Unmarshal(resp, &a); err != nil {
 			log.Println("Error unmarshalling json response: ", err.Error())
 			continue
